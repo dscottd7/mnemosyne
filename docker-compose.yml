@@ -1,0 +1,14 @@
+# version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      PINECONE_API_KEY: ${PINECONE_API_KEY}
+      PINECONE_ENV: ${PINECONE_ENV}
+      PINECONE_INDEX_NAME: ${PINECONE_INDEX_NAME}
