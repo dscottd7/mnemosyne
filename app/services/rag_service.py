@@ -1,6 +1,6 @@
+from langchain_core.prompts import PromptTemplate
 from langchain_community.vectorstores import Pinecone as LangchainPinecone
-from langchain_openai import OpenAIEmbeddings
-from langchain_openai import ChatOpenAI
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.chains import RetrievalQA
 from pinecone import Pinecone
 from ..config import settings
@@ -13,39 +13,58 @@ logger = logging.getLogger(__name__)
 class RAGService:
     """
     Handles RAG (Retrieval Augmented Generation) operations using Pinecone and LangChain.
-    This service manages document storage, retrieval, and question answering.
+    This service manages document storage, retrieval, and question answering with 
+    customized response generation.
     """
     def __init__(self):
         try:
             logger.info("Initializing RAG Service...")
             
-            # Create Pinecone instance
+            # Initialize Pinecone and embeddings as before
             self.pc = Pinecone(api_key=settings.PINECONE_API_KEY)
-            logger.info("Pinecone client initialized")
-            
-            # Initialize the embeddings model
             self.embeddings = OpenAIEmbeddings()
-            logger.info("OpenAI embeddings initialized")
-            
-            # Get the index - no need to create it as it should already exist
             self.index = self.pc.Index(settings.PINECONE_INDEX_NAME)
-            logger.info(f"Connected to Pinecone index: {settings.PINECONE_INDEX_NAME}")
             
-            # Set up the LangChain vector store
+            # Initialize the vector store
             self.vectorstore = LangchainPinecone.from_existing_index(
                 index_name=settings.PINECONE_INDEX_NAME,
                 embedding=self.embeddings,
                 text_key="text"
             )
-            logger.info("LangChain vector store initialized")
             
-            # Initialize the QA chain with error handling
+            # Create our custom prompt template
+            self.qa_template = """You are a person named Scott tasked with answering questions based on the provided context, which is content you wrote about yourself and your thoughts. 
+            Your goal is to help users understand your point of view as described in the context.
+
+Context Information:
+{context}
+
+Question: {question}
+
+Please follow these guidelines when forming your response:
+1. Base your answer primarily on the information provided in the context
+2. Explain concepts clearly and thoroughly, breaking down complex ideas when necessary
+3. If the context doesn't contain enough information to fully answer the question, acknowledge this and explain what you can based on what's available
+4. Use a tone consistent with the context
+5. Organize your response logically, building from basic concepts to more complex ones
+6. If relevant, provide examples or analogies to illustrate your points
+7. If you quote from the context, integrate it naturally into your explanation
+8. Don't refer to "the context provided" when you generate your response – the context provided are your own thoughts and experiences
+
+Answer: """
+
+            # Convert the template into a LangChain prompt
+            self.QA_PROMPT = PromptTemplate(
+                template=self.qa_template,
+                input_variables=["context", "question"]
+            )
+            
+            # Set up the QA chain with our custom prompt
             self.qa_chain = self._setup_qa_chain()
-            logger.info("QA chain setup completed")
+            logger.info("RAG Service initialization complete")
             
         except Exception as e:
             logger.error(f"Failed to initialize RAG Service: {str(e)}")
-            # Re-raise the exception to prevent the service from starting in a bad state
             raise
 
     def _setup_qa_chain(self):
@@ -55,15 +74,21 @@ class RAGService:
         """
         try:
             llm = ChatOpenAI(
-                temperature=0,
-                model_name="gpt-4"
+                temperature=0.3,
+                model_name="gpt-4",
+                max_tokens=1000
             )
+            # Create the QA chain with custom prompt and verbose logging
             return RetrievalQA.from_chain_type(
                 llm=llm,
                 chain_type="stuff",
                 retriever=self.vectorstore.as_retriever(
-                    search_kwargs={"k": 3}
-                )
+                    search_kwargs={"k": 5}
+                ),
+                chain_type_kwargs={
+                    "prompt": self.QA_PROMPT,
+                    "verbose": True 
+                }
             )
         except Exception as e:
             logger.error(f"Failed to set up QA chain: {str(e)}")
