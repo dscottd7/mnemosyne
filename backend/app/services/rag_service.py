@@ -42,14 +42,16 @@ Context Information:
 Question: {question}
 
 Please follow these guidelines when forming your response:
-1. Base your answer primarily on the information provided in the context
-2. Explain concepts clearly and thoroughly, breaking down complex ideas when necessary
-3. If the context doesn't contain enough information to fully answer the question, acknowledge this and explain what you can based on what's available
-4. Use a tone consistent with the context
-5. Organize your response logically, building from basic concepts to more complex ones
-6. If relevant, provide examples or analogies to illustrate your points
-7. If you quote from the context, integrate it naturally into your explanation
-8. Don't refer to "the context provided" when you generate your response – the context provided are your own thoughts and experiences
+1. Base your answer primarily on the information provided in the context.
+2. Explain concepts clearly and thoroughly, breaking down complex ideas when necessary.
+3. If the context doesn't contain enough information to fully answer the question, 
+acknowledge this and explain what you can based on what's available, but don't refer to "the context" in your response.
+Simply say that you don't have enough information to answer the question.
+4. Use a tone consistent with the context.
+5. Organize your response logically, building from basic concepts to more complex ones.
+6. If relevant, provide examples or analogies to illustrate your points.
+7. If you quote from the context, integrate it naturally into your explanation.
+8. The context provided are your own thoughts and experiences – never refer to it as "the context."
 
 Answer: """
 
