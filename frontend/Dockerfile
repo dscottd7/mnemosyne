@@ -1,35 +1,54 @@
-# Use Node 18 as our base image
-FROM node:18-slim
-
-# Set working directory
+# Base stage with shared configuration
+FROM node:18-slim AS base
 WORKDIR /app
 
-# First, copy only package files to leverage Docker caching
+# Development stage for local development
+FROM base AS development
 COPY package*.json ./
-
-# Install dependencies with clean npm cache and proper error logging
-RUN set -ex; \
-    npm cache clean --force && \
-    npm install && \
-    # Verify Mantine packages are installed
-    npm list @mantine/core && \
-    npm list @mantine/hooks && \
-    npm list @mantine/notifications
+RUN npm install
 
 # Copy the rest of the application
-# This includes our Next.js config and source files
+# In development, this will be overridden by the volume mount in docker-compose
 COPY . .
 
-# Ensure proper permissions for Next.js
-RUN chmod -R 777 /app/.next || true
-
-# Expose the port Next.js runs on
+# Set development environment and expose Next.js development port
+ENV NODE_ENV=development
+ENV PORT=3000
 EXPOSE 3000
 
-# Set proper environment variables for Next.js
-ENV HOSTNAME "0.0.0.0"
-ENV PORT 3000
-ENV NODE_ENV development
-
-# Start the development server
+# Start Next.js in development mode with hot reloading
 CMD ["npm", "run", "dev"]
+
+# Builder stage for production
+FROM base AS builder
+COPY package*.json ./
+RUN npm install
+COPY . .
+
+# Add build-time environment configuration
+# This ensures Next.js can handle both development and production API URLs
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+
+RUN npm run build
+
+# Production stage
+FROM base AS production
+# Copy built application from builder
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/public ./public
+
+# Set production environment
+ENV NODE_ENV=production
+# Use PORT 8080 for Cloud Run but allow override
+ENV PORT=${PORT:-8080}
+EXPOSE ${PORT}
+
+# Runtime environment variable configuration
+# This allows the API URL to be configured at runtime
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+
+# Start the application
+CMD ["npm", "start"]
