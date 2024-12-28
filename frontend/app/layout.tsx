@@ -1,10 +1,9 @@
 import { Providers } from './providers';
-// Import Mantine styles
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 
 export const metadata = {
-  title: 'RAG Chat Interface',
+  title: 'ScottGPT',
   description: 'A chat interface powered by RAG technology',
 };
 

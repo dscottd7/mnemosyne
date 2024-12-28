@@ -1,4 +1,3 @@
-// app/page.tsx
 'use client';
 
 import { useState } from 'react';
@@ -25,8 +24,13 @@ export default function ChatInterface() {
     setInput('');
     setIsLoading(true);
 
-    try {
-      const response = await fetch('http://localhost:8000/api/v1/query', {
+    const API_URL = process.env.NODE_ENV === 'production' ?  'https://mnemosyne-backend-302656282665.us-central1.run.app' : 'http://localhost:8000';
+    // const API_URL = 'https://mnemosyne-backend-302656282665.us-central1.run.app';
+    console.log('NODE_ENV:', process.env.NODE_ENV);
+    console.log('API_URL:', API_URL);
+
+      try {
+      const response = await fetch(`${API_URL}/api/v1/query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: input }),

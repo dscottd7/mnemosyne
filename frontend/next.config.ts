@@ -23,25 +23,21 @@ const nextConfig: NextConfig = {
 
   // Configure API routing based on environment
   async rewrites() {
-    // Get the API URL from environment variable
     const apiUrl = process.env.NEXT_PUBLIC_API_URL
 
-    // If no API URL is set, assume we're in development
-    if (!apiUrl) {
-      return {
-        beforeFiles: [{
-          source: '/api/:path*',
-          destination: 'http://backend:8000/api/:path*' // Docker service name
-        }]
-      }
+    // Define the API rewrite rule
+    const apiRewrite = {
+      source: '/api/:path*',
+      destination: apiUrl 
+        ? `${apiUrl}/api/:path*`
+        : 'http://backend:8000/api/:path*'
     }
 
-    // For production/GCP environment, use the provided API URL
+    // Return complete rewrite configuration with all required stages
     return {
-      beforeFiles: [{
-        source: '/api/:path*',
-        destination: `${apiUrl}/api/:path*`
-      }]
+      beforeFiles: [apiRewrite],  // Your API routing rule
+      afterFiles: [],             // Required by type system but empty
+      fallback: []               // Required by type system but empty
     }
   },
 
